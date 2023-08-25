@@ -1,0 +1,104 @@
+---
+title: "ETL_plink_GWAS_to_FUMA_Reframe"
+author: "Hung-Lin Chen"
+date: "2023-08-25"
+output: html_document
+---
+
+# load libraries
+```{r setup, include=FALSE}
+# Load data.table
+library(data.table)
+# Core Tidyverse - Loads dplyr
+library(tidyverse)
+# Fast reading of delimited files (e.g. csv)
+library(vroom) # vroom()
+# Table Printing
+library(knitr) # kable()
+library(DT)
+```
+
+# set default
+```{r}
+# input
+GWAS_input <-
+  "/file.path"
+
+# output
+output_path <- "/output"
+
+output_file <- "GWAS_pheno_FUMA.gz"  
+```
+
+
+# input data
+```{r}
+GWAS <- vroom(GWAS_input)
+
+```
+
+filter "P-value < 5e-8" 
+```{r}
+GWAS %>% filter(`P-value` < 5e-8)
+```
+
+# Check NA in GWAS
+```{r}
+is.na(GWAS) %>% sum()
+```
+
+# Reframe METAL_P for FUMA Format
+METAL Format
+MarkerName:CHR:BP_REF/ALT
+A1
+A2
+P: 
+BETA: 
+SE:
+N: 
+
+**beta 和 or的轉化**
+- beta to or
+or = exp(beta)
+- or to beta
+beta = log(or)
+
+**有beta, p，如何計算se**
+se=sqrt(((beta)^2)/qchisq(p, 1, lower.tail = F))
+print(se)
+
+**有beta and se, 計算z-score**
+zscore_c = beta/se
+print(zscore_c)
+
+**有beta and p, 計算z-score**
+c = -qnorm(p/2)
+print(c)
+when beta<0, z-core = -c;
+where beta>0, z-core = c;
+
+### add the CHR, BP and change the column name (dplyr)
+```{r}
+GWAS_FUMA <- GWAS %>% 
+  mutate(CHR = str_extract(MarkerName,"^[\\d]+"),
+         BP = str_match(MarkerName,"\\:([\\d]+)")[,2],
+         Allele1 = toupper(Allele1),
+         Allele2 = toupper(Allele2),
+         P = `P-value`)
+```
+
+
+
+# view
+```{r}
+head(GWAS_FUMA)
+```
+
+
+### save
+```{r}
+fwrite(GWAS_FUMA, file.path(output.path,output_file), sep ="\t", na ="NA", row.names = FALSE, col.names = TRUE, quote = FALSE, compress = "gzip")
+
+```
+
+
