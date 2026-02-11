@@ -1,0 +1,57 @@
+### Regeine to FUMA
+### Hung-Lin Chen
+### 2026-02-11
+
+# process_regenie_to_fuma("/path/to/regenie.gz", "Output/你的輸出檔名.gz")
+
+process_regenie_to_fuma <- function(regenie.file, output.file) {
+  
+  # 1. 自動檢查並安裝缺失的套件
+  required_packages <- c("data.table", "dplyr")
+  new_packages <- required_packages[!(required_packages %in% installed.packages()[, "Package"])]
+  
+  if (length(new_packages)) {
+    message("偵測到缺失套件，正在安裝: ", paste(new_packages, collapse = ", "))
+    install.packages(new_packages)
+  }
+  
+  # 載入套件
+  library(data.table)
+  library(dplyr)
+  
+  # 2. 檢查輸入檔案
+  if (!file.exists(regenie.file)) {
+    stop(paste("錯誤：找不到輸入檔案", regenie.file))
+  }
+  
+  # 3. 自動處理輸出目錄（避免路徑不存在的錯誤）
+  output_dir <- dirname(output.file)
+  if (!dir.exists(output_dir) && output_dir != ".") {
+    message(paste("正在建立目錄：", output_dir))
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # 4. 讀取與處理資料
+  # 使用 data.table 的 fread 搭配 dplyr 的 pipe
+  message("正在讀取並處理資料...")
+  FUMA <- fread(regenie.file) %>%
+    mutate(
+      P = 10^(-LOG10P), 
+      SNP = sub("_.*", "", ID)
+    )
+  
+  # 5. 寫出資料（自動壓縮為 gzip）
+  message(paste("正在將結果寫入：", output.file))
+  fwrite(
+    FUMA, 
+    output.file, 
+    sep = "\t", 
+    na = "NA", 
+    row.names = FALSE, 
+    col.names = TRUE, 
+    quote = FALSE, 
+    compress = "gzip"
+  )
+  
+  message("✅ 處理完成！")
+}
