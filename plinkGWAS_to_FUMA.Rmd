@@ -79,6 +79,9 @@ where beta>0, z-core = c;
 
 ### add the CHR, BP and change the column name (dplyr)
 ```{r}
+# Turn off scientific notation so BP like 93000000 doesn't become 9.3e+07
+options(scipen = 999)
+
 GWAS_FUMA <- GWAS %>% 
   mutate(CHR = str_extract(MarkerName,"^[\\d]+"),
          BP = str_match(MarkerName,"\\:([\\d]+)")[,2],
@@ -100,5 +103,6 @@ head(GWAS_FUMA)
 fwrite(GWAS_FUMA, file.path(output.path,output_file), sep ="\t", na ="NA", row.names = FALSE, col.names = TRUE, quote = FALSE, compress = "gzip")
 
 ```
+
 
 
