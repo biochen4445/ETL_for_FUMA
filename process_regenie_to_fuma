@@ -41,6 +41,10 @@ process_regenie_to_fuma <- function(regenie.file, output.file) {
     )
   
   # 5. 寫出資料（自動壓縮為 gzip）
+
+# Turn off scientific notation so BP like 93000000 doesn't become 9.3e+07
+options(scipen = 999)
+
   message(paste("正在將結果寫入：", output.file))
   fwrite(
     FUMA, 
