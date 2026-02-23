@@ -1,0 +1,72 @@
+---
+title: "FUMA_check"
+author: "Hung-Lin Chen"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("data.table")
+library("tidyverse")
+output.path <- "./Result/"
+# output_file <- "ICH_METAL_EAS_GCoff_FUMA_20260220_concised.gz"
+# output_file <- "ICH_METAL_EUR_GCoff_FUMA_20260220_concised.gz"
+ output_file <- "ICH_METAL_multi_GCon_FUMA_20260220_concised.gz"
+
+```
+
+# Input
+```{r}
+#GWAS <- fread("/media/Projects/ICH_20241118_MA/ICH_multi_20260203_HL/METAL/Output/ICH_METAL_EAS_GCoff_FUMA_20260212_concised.txt.gz")
+
+#GWAS <- fread("/media/Projects/ICH_20241118_MA/ICH_multi_20260203_HL/METAL/Output/ICH_METAL_EUR_GCoff_FUMA_20260212_concised.txt.gz")
+
+GWAS <- fread("/media/Projects/ICH_20241118_MA/ICH_multi_20260203_HL/METAL/Output/ICH_METAL_multi_GCon_FUMA_20260212_concised.txt.gz")
+
+
+GWAS %>% head()
+```
+
+# Check if GWAS contains NA
+```{r}
+# change column name "P-value" to "P"
+colnames(GWAS)[colnames(GWAS) == "P-value"] <- "P"
+
+# 1. Remove rows with missing CHR, BP, or P-value
+# FUMA will crash if it tries to plot an NA coordinate
+GWAS <- GWAS[!is.na(CHR) & !is.na(BP) & !is.na(P)]
+
+# 2. Ensure CHR is a strict integer (strips "chr" prefixes if your data has them)
+GWAS$CHR <- as.integer(gsub("chr", "", GWAS$CHR, ignore.case = TRUE))
+
+# 3. Ensure BP is a strict integer
+GWAS$BP <- as.integer(GWAS$BP)
+
+```
+
+# Output
+```{r}
+# Output
+
+# 4. Turn off scientific notation so BP like 93000000 doesn't become 9.3e+07
+options(scipen = 999)
+
+# 5. Write the file
+fwrite(GWAS, file.path(output.path, output_file), sep ="\t", na ="NA", row.names = F, col.names = T, quote = F, compress = "gzip")
+
+# (Optional) Turn scientific notation back to default after writing
+options(scipen = 0)
+```
+
+```{r}
+summary(GWAS)
+```
+# Manhattan plot of EUR
+```{r}
+# Manhattan plot for GWAS
+library(qqman)
+
+# Create the Manhattan plot
+manhattan(GWAS, chr = "CHR", bp = "BP", snp = "rsID", p = "P", main = "Manhattan Plot for ICH GWAS", suggestiveline = F, genomewideline = F)         
+```
